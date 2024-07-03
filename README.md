@@ -36,7 +36,7 @@ dify官网： https://dify.ai/
 
 ## Markdown模式
 
-![img.png](consts/img.png)
+![img.png](consts%2Fimg.png)
 
 ## 流输出模式
 ![img.png](consts/imgStream2.png)
