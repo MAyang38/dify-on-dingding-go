@@ -56,17 +56,15 @@ func StartDingRobot() {
 }
 
 func OnChatReceiveText(ctx context.Context, data *chatbot.BotCallbackDataModel) ([]byte, error) {
-
 	if clients.PermissionControlInit == 1 {
 		permission, err := clients.PermissionControl.GetUserPermissionLevel(data.SenderId)
 		if err != nil {
-			fmt.Println("GetUserPermissionLevel 异常")
+			fmt.Println("OnChatReceive 异常")
 			return nil, nil
 		}
 		fmt.Print(permission)
 		if permission == 0 {
 			fmt.Println("对不起，没有基础权限，请申请")
-
 		} else if permission == -1 {
 			fmt.Println("对不起，没有基础权限，请申请")
 		}

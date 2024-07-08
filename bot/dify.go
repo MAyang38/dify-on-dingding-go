@@ -184,9 +184,16 @@ func (client *difyClient) CallAPIStreaming(query, conversationID, userID string,
 	}
 
 	// 设置必要的请求头
-	req.Header.Set("Authorization", "Bearer "+client.DifyApiKey)
 	req.Header.Set("Content-Type", "application/json")
-
+	if clients.PermissionControlInit == 1 {
+		difyApiKeyPermission, err := client.getHeader(userID)
+		if err != nil {
+			return err
+		}
+		req.Header.Set("Authorization", "Bearer "+difyApiKeyPermission)
+	} else {
+		req.Header.Set("Authorization", "Bearer "+client.DifyApiKey)
+	}
 	// 发送请求
 	resp, err := clientHttp.Do(req)
 	if err != nil {
@@ -334,4 +341,28 @@ func updateDingTalkCard(content string, cardInstanceId string) error {
 	elapsed := time.Since(timeStart)
 	fmt.Printf("updateDingTalkCard 执行时间: %s\n", elapsed)
 	return nil
+}
+func (client *difyClient) getHeader(userId string) (apiKey string, err error) {
+	permission, err := clients.PermissionControl.GetUserPermissionLevel(userId)
+	if err != nil {
+		fmt.Println("GetUserPermissionLevel 异常")
+		return "", errors.New("GetUserPermissionLevel异常")
+	}
+	fmt.Print(permission)
+	if permission == 0 || permission == -1 {
+		fmt.Println("对不起，没有基础权限，请申请")
+		return "", errors.New("没有基础权限")
+	}
+	switch permission {
+	case consts.PermissionHigh:
+		return os.Getenv("API_KEY_1001"), nil
+	case consts.PermissionMiddle:
+		return os.Getenv("API_KEY_1002"), nil
+	case consts.PermissionLow:
+		return os.Getenv("API_KEY_1003"), nil
+	case consts.PermissionYou:
+		return os.Getenv("API_KEY_1004"), nil
+	}
+
+	return apiKey, nil
 }
