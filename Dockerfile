@@ -1,5 +1,8 @@
 # Use the official Golang image as a base image
-FROM golang:1.18-alpine
+FROM golang:1.21-alpine
+
+
+ENV GOPROXY=https://goproxy.cn,direct
 
 # Set the Current Working Directory inside the container
 WORKDIR /app
