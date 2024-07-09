@@ -34,6 +34,10 @@ dify官网： https://dify.ai/
        Output_Type: 机器人输出内容模式， Text为文本， Stream为流输出，Markdown为Markdown格式输出
 
 
+# docker部署
+docker build -t your_image_name:latest .
+docker run -d your_container_name -p 7777:7777 your_image_name:latest 
+
 ## Markdown模式
 
 ![img.png](consts%2Fimg.png)
