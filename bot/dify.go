@@ -157,7 +157,7 @@ func (client *difyClient) CallAPIBlock(query, conversationID, userID string) (st
 	return response.Answer, nil
 }
 
-func (client *difyClient) CallAPIStreaming(query, userID string, cardInstanceId string, msg *Message) (*bufio.Scanner, error) {
+func (client *difyClient) CallAPIStreaming(query, userID string, msg *Message) (*bufio.Scanner, error) {
 	conversationID, exists := client.GetSession(userID)
 	if exists {
 		fmt.Println("Conversation ID for user:", userID, "is", conversationID)
@@ -193,7 +193,7 @@ func (client *difyClient) CallAPIStreaming(query, userID string, cardInstanceId 
 	// 设置必要的请求头
 	req.Header.Set("Content-Type", "application/json")
 	if clients.PermissionControlInit == 1 {
-		difyApiKeyPermission, err := client.getHeader(userID)
+		difyApiKeyPermission, err := client.getHeader(msg.Permission)
 		if err != nil {
 			return nil, err
 		}
@@ -227,78 +227,6 @@ func (client *difyClient) CallAPIStreaming(query, userID string, cardInstanceId 
 
 	scanner := bufio.NewScanner(resp.Body)
 	return scanner, nil
-	//var answerBuilder strings.Builder
-	//cm := utils.NewChannelManager()
-	//defer func() {
-	//	if !cm.IsClosed() {
-	//		cm.CloseChannel()
-	//	}
-	//}()
-	////updateChannel := make(chan string, 1)
-	////defer close(updateChannel)
-	////stopChannel := make(chan struct{}) // 创建停止信号通道
-	//
-	//go func(*utils.ChannelManager) {
-	//	var lastContent string
-	//	timer := time.NewTicker(200 * time.Millisecond) // 每200ms触发一次
-	//	defer timer.Stop()
-	//	for {
-	//		select {
-	//		case content := <-cm.DataCh:
-	//			{
-	//				fmt.Println("接收到的内容", content)
-	//				lastContent = content
-	//			}
-	//		case <-timer.C:
-	//			if lastContent != "" {
-	//				go func(content string) {
-	//					err := UpdateDingTalkCard(content, cardInstanceId)
-	//					if err != nil {
-	//						fmt.Println("Error updating DingTalk card:", err)
-	//					}
-	//				}(lastContent)
-	//				lastContent = ""
-	//			}
-	//		case <-cm.CloseCh: // 接收到停止信号，退出循环
-	//			return
-	//		}
-	//	}
-	//}(cm)
-	//
-	//for scanner.Scan() {
-	//	var event StreamingEvent
-	//	line := scanner.Text()
-	//	if line == "" {
-	//		continue
-	//	}
-	//	if strings.HasPrefix(line, "data: ") {
-	//		line = strings.TrimPrefix(line, "data: ")
-	//	}
-	//	if err = json.Unmarshal([]byte(line), &event); err != nil {
-	//		fmt.Println("Error decoding JSON:", err)
-	//		continue
-	//	}
-	//
-	//	err = client.processEvent(userID, event, &answerBuilder, cm)
-	//	if err != nil {
-	//		return err
-	//	}
-	//
-	//}
-	//
-	//if err = scanner.Err(); err != nil {
-	//	fmt.Println("Error reading response:", err)
-	//	return err
-	//}
-	//if !cm.IsClosed() {
-	//	cm.CloseChannel()
-	//}
-	//fmt.Println("Final Answer:", answerBuilder.String())
-	//time.Sleep(300)
-	//err = UpdateDingTalkCard(answerBuilder.String(), cardInstanceId)
-	//if err != nil {
-	//	fmt.Println("Error updating DingTalk card:", err)
-	//}
 
 }
 func (client *difyClient) ProcessEvent(userID string, event StreamingEvent, answerBuilder *strings.Builder, cm *utils.ChannelManager) error {
@@ -333,17 +261,8 @@ func (client *difyClient) ProcessEvent(userID string, event StreamingEvent, answ
 
 }
 
-func (client *difyClient) getHeader(userId string) (apiKey string, err error) {
-	permission, err := clients.PermissionControl.GetUserPermissionLevel(userId)
-	if err != nil {
-		fmt.Println("GetUserPermissionLevel 异常")
-		return "", errors.New("GetUserPermissionLevel异常")
-	}
-	fmt.Print(permission)
-	if permission == 0 || permission == -1 {
-		fmt.Println("对不起，没有基础权限，请申请")
-		return "", errors.New("没有基础权限")
-	}
+func (client *difyClient) getHeader(permission int) (apiKey string, err error) {
+
 	switch permission {
 	case consts.PermissionHigh:
 		return os.Getenv("API_KEY_1001"), nil

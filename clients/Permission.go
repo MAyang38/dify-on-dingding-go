@@ -30,14 +30,14 @@ func PermissionInit() (err error) {
 	PermissionControl = permissionControl{
 		BaseUrl: os.Getenv("Permission_Service"),
 	}
-	PermissionControlInit, err = strconv.Atoi(os.Getenv("Permission_Control_Init"))
+	PermissionControlInit, err = strconv.Atoi(os.Getenv("Private_Service_Control_Flag"))
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (p *permissionControl) GetUserPermissionLevel(userID string) (int, error) {
+func (p *permissionControl) GetUserPermissionLevel(userID string, userNickName string) (int, error) {
 
 	encodedUserID := url.QueryEscape(userID)
 	url := fmt.Sprintf("%s/users?user_id=%s", p.BaseUrl, encodedUserID)
@@ -71,16 +71,17 @@ func (p *permissionControl) GetUserPermissionLevel(userID string) (int, error) {
 		return data.Users[0].PermissionLevel, nil
 	}
 
-	return p.AddUserPermissionLevel(userID)
+	return p.AddUserPermissionLevel(userID, userNickName)
 
 }
 
-func (p *permissionControl) AddUserPermissionLevel(userID string) (int, error) {
+func (p *permissionControl) AddUserPermissionLevel(userID string, userNickName string) (int, error) {
 	url := p.BaseUrl + "/users"
 	defaultPermissionLevel := 1001 // 替换为你的配置获取逻辑
 
 	user := models.User{
 		UserID:          userID,
+		Name:            userNickName,
 		PermissionLevel: defaultPermissionLevel,
 	}
 

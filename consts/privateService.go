@@ -1,8 +1,8 @@
 package consts
 
 const (
-	PermissionNeedInit = "1"
-	PermissionNotInit  = "0"
+	PrivateServiceNeedInit    = "1"
+	PrivateServiceNotNeedInit = "0"
 
 	PermissionHigh   = 1001
 	PermissionMiddle = 1002

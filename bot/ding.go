@@ -4,6 +4,7 @@ import (
 	"context"
 	"ding/clients"
 	"ding/consts"
+	"ding/models"
 	selfutils "ding/utils"
 	"encoding/json"
 	"fmt"
@@ -25,6 +26,8 @@ type Message struct {
 	Ctx            context.Context
 	Data           *chatbot.BotCallbackDataModel
 	MsgType        string
+	Permission     int
+	IsGroup        bool
 	CardInstanceId string
 	ReceivedMsgStr string
 	ConversationID string
@@ -58,7 +61,7 @@ func processMessage(msg *Message) {
 
 		userID := msg.Data.SenderId
 		// 在这里处理你的消息，例如调用API等
-		streamScanner, err := DifyClient.CallAPIStreaming(msg.ReceivedMsgStr, userID, msg.CardInstanceId, msg)
+		streamScanner, err := DifyClient.CallAPIStreaming(msg.ReceivedMsgStr, userID, msg)
 		if err != nil {
 			fmt.Println("Error CallAPIStreaming:", err)
 			return
@@ -173,6 +176,29 @@ func processMessage(msg *Message) {
 		if err != nil {
 			fmt.Println("Error updating DingTalk card:", err)
 		}
+		// 记录发送日志
+		if clients.PermissionControlInit == 1 {
+			conversationID, _ := DifyClient.GetSession(userID)
+			msg.ConversationID = conversationID
+			question := models.Question{
+				Name:      msg.Data.SenderNick,
+				Query:     msg.ReceivedMsgStr,
+				Reply:     answerBuilder.String(),
+				UserId:    userID,
+				SessionId: msg.ConversationID,
+			}
+			if msg.IsGroup {
+				question.ChatType = 2
+			} else {
+				question.ChatType = 1
+			}
+
+			err = clients.QuestionLogCli.SendQueryRecord(question)
+			if err != nil {
+				fmt.Println("添加问题日志出错", err)
+				return
+			}
+		}
 	}
 }
 
@@ -218,7 +244,7 @@ func StartDingRobot() {
 
 func OnChatReceiveText(ctx context.Context, data *chatbot.BotCallbackDataModel) ([]byte, error) {
 	if clients.PermissionControlInit == 1 {
-		permission, err := clients.PermissionControl.GetUserPermissionLevel(data.SenderId)
+		permission, err := clients.PermissionControl.GetUserPermissionLevel(data.SenderId, data.SenderNick)
 		if err != nil {
 			fmt.Println("OnChatReceive 异常")
 			return nil, nil
@@ -258,10 +284,34 @@ func OnChatReceiveText(ctx context.Context, data *chatbot.BotCallbackDataModel) 
 func OnChatBotStreamingMessageReceived(ctx context.Context, data *chatbot.BotCallbackDataModel) ([]byte, error) {
 	// create an uniq card id to identify a card instance while updating
 	// see: https://open.dingtalk.com/document/orgapp/robots-send-interactive-cards (cardBizId)
-
 	// 数据过滤
+	replier := chatbot.NewChatbotReplier()
+	permission := 0
+	var err error
+	if clients.PermissionControlInit == 1 {
+		permission, err = clients.PermissionControl.GetUserPermissionLevel(data.SenderId, data.SenderNick)
+		if err != nil {
+			fmt.Println("OnChatReceive 异常")
+			res := "服务器内部异常"
+			if err := replier.SimpleReplyText(ctx, data.SessionWebhook, []byte(res)); err != nil {
+				return nil, err
+			}
+			return nil, err
+		}
+		fmt.Print(permission)
+		if permission == 0 || permission == -1 {
+			fmt.Println("对不起，没有基础权限，请申请")
+			res := "对不起，没有基础权限，请申请"
+			if err := replier.SimpleReplyText(ctx, data.SessionWebhook, []byte(res)); err != nil {
+				return nil, err
+			}
+			return nil, nil
+		}
+
+	}
+
 	if !selfutils.StringInSlice(data.Msgtype, dingSupportType) {
-		replier := chatbot.NewChatbotReplier()
+
 		res := "不支持的消息格式"
 		if err := replier.SimpleReplyText(ctx, data.SessionWebhook, []byte(res)); err != nil {
 			return nil, err
@@ -321,6 +371,7 @@ func OnChatBotStreamingMessageReceived(ctx context.Context, data *chatbot.BotCal
 		Ctx:            ctx,
 		Data:           data,
 		MsgType:        data.Msgtype,
+		Permission:     permission,
 		ReceivedMsgStr: receivedMsgStr,
 		ImageCodeList:  imageCodeList,
 		ImageUrlList:   imageUrlList,
@@ -331,7 +382,7 @@ func OnChatBotStreamingMessageReceived(ctx context.Context, data *chatbot.BotCal
 
 func OnChatReceiveMarkDown(ctx context.Context, data *chatbot.BotCallbackDataModel) ([]byte, error) {
 	if clients.PermissionControlInit == 1 {
-		permission, err := clients.PermissionControl.GetUserPermissionLevel(data.SenderId)
+		permission, err := clients.PermissionControl.GetUserPermissionLevel(data.SenderId, data.SenderNick)
 		if err != nil {
 			fmt.Println("OnChatReceive 异常")
 			return nil, nil

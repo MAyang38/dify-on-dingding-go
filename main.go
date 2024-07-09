@@ -4,7 +4,7 @@ import (
 	"ding/bot"
 	"ding/clients"
 	"ding/conf"
-	"ding/consts"
+	myconst "ding/consts"
 	"fmt"
 	"os"
 )
@@ -17,11 +17,16 @@ func main() {
 		return
 	}
 	// 机器人的权限控制 默认关闭
-	PermissionControlInit := os.Getenv("Permission_Control_Init")
-	if PermissionControlInit == consts.PermissionNeedInit {
+	privateServiceControlFlag := os.Getenv("Private_Service_Control_Flag")
+	if privateServiceControlFlag == myconst.PrivateServiceNeedInit {
 		err = clients.PermissionInit()
 		if err != nil {
 			fmt.Print("权限控制初始化失败")
+			return
+		}
+		err = clients.QuestionLogInit()
+		if err != nil {
+			fmt.Print("机器人回答日志记录初始化失败")
 			return
 		}
 	}
