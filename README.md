@@ -25,7 +25,7 @@ dify官网： https://dify.ai/
     
        CLIENT_SECRET:钉钉机器人应用的secret
     
-       Permission_Control_Init=0 #默认关闭
+       Private_Service_Control_Flag=0 # 默认关闭 自定义的外部服务 
 
        Permission_Service=your_permission_service_address #默认用不上
        
