@@ -1,0 +1,175 @@
+package dingbot
+
+import (
+	"context"
+	"ding/bot"
+	"ding/clients"
+	"ding/models"
+	selfutils "ding/utils"
+	"encoding/json"
+	"fmt"
+	"github.com/google/uuid"
+	"github.com/open-dingtalk/dingtalk-stream-sdk-go/chatbot"
+	"strings"
+	"sync"
+	"time"
+)
+
+type DingMessage struct {
+	Ctx            context.Context
+	Data           *chatbot.BotCallbackDataModel
+	MsgType        string
+	Permission     int
+	IsGroup        bool
+	CardInstanceId string
+	ReceivedMsgStr string
+	ConversationID string
+	ImageCodeList  []string
+	ImageUrlList   []string
+}
+
+var (
+	messageQueue    chan *DingMessage
+	wg              sync.WaitGroup
+	dingSupportType []string
+)
+
+func DingVarInit() {
+	messageQueue = make(chan *DingMessage, 1000) // 设置队列容量
+	dingSupportType = []string{"text", "audio", "picture"}
+	wg.Add(1)
+	go messageConsumer()
+}
+
+func messageConsumer() {
+	defer wg.Done()
+	for msg := range messageQueue {
+		// 处理消息的逻辑
+		msg.processMessage()
+	}
+}
+func (msg *DingMessage) processMessage() {
+
+	if msg.ReceivedMsgStr != "" {
+		userID := msg.Data.SenderId
+		conversationID, exists := bot.DifyClient.GetSession(msg.Data.SenderId)
+		if exists {
+			fmt.Println("Conversation ID for user:", userID, "is", conversationID)
+		} else {
+			conversationID = ""
+			fmt.Println("No conversation ID found for user:", userID)
+		}
+		msg.ConversationID = conversationID
+		// 在这里处理你的消息，例如调用API等
+		streamScanner, err := bot.DifyClient.CallAPIStreaming(msg.ReceivedMsgStr, userID, conversationID, msg.Permission)
+		if err != nil {
+			fmt.Println("Error CallAPIStreaming:", err)
+			return
+		}
+		// 发送卡片
+		u, err := uuid.NewUUID()
+		if err != nil {
+			fmt.Println("生成uuid错误")
+			return
+		}
+		cardInstanceId := u.String()
+		msg.CardInstanceId = cardInstanceId
+
+		// 接收流返回
+		var answerBuilder strings.Builder
+		cm := selfutils.NewChannelManager()
+		defer func() {
+			if !cm.IsClosed() {
+				cm.CloseChannel()
+			}
+		}()
+
+		go func(*selfutils.ChannelManager) {
+			var lastContent string
+			timer := time.NewTicker(200 * time.Millisecond) // 每200ms触发一次
+			defer timer.Stop()
+			for {
+				select {
+				case content := <-cm.DataCh:
+					{
+						//fmt.Println("接收到的内容", content)
+						lastContent = content
+					}
+				case <-timer.C:
+					if lastContent != "" {
+						go func(content string) {
+							err := UpdateDingTalkCard("**回答中**", content, cardInstanceId)
+							if err != nil {
+								fmt.Println("Error updating DingTalk card:", err)
+							}
+						}(lastContent)
+						lastContent = ""
+					}
+				case <-cm.CloseCh: // 接收到停止信号，退出循环
+					return
+				}
+			}
+		}(cm)
+
+		sendInteractiveCard(cardInstanceId, msg)
+
+		for streamScanner.Scan() {
+			var event bot.StreamingEvent
+			line := streamScanner.Text()
+			if line == "" {
+				continue
+			}
+			if strings.HasPrefix(line, "data: ") {
+				line = strings.TrimPrefix(line, "data: ")
+			}
+			if err = json.Unmarshal([]byte(line), &event); err != nil {
+				fmt.Println("Error decoding JSON:", err)
+				continue
+			}
+
+			err = bot.DifyClient.ProcessEvent(userID, event, &answerBuilder, cm)
+			if err != nil {
+				fmt.Printf("processEvent err %s\n", err)
+				return
+			}
+
+		}
+
+		if err = streamScanner.Err(); err != nil {
+			fmt.Println("Error reading response:", err)
+			return
+		}
+		if !cm.IsClosed() {
+			cm.CloseChannel()
+		}
+		fmt.Println("Final Answer:", answerBuilder.String())
+		time.Sleep(300)
+		err = UpdateDingTalkCard("", answerBuilder.String(), cardInstanceId)
+		if err != nil {
+			fmt.Println("Error updating DingTalk card:", err)
+		}
+		// 记录发送日志
+		if clients.PermissionControlInit == 1 {
+			conversationID, _ := bot.DifyClient.GetSession(userID)
+			msg.ConversationID = conversationID
+			question := models.Question{
+				Name:      msg.Data.SenderNick,
+				Query:     msg.ReceivedMsgStr,
+				Reply:     answerBuilder.String(),
+				UserId:    userID,
+				SessionId: msg.ConversationID,
+			}
+			if msg.IsGroup {
+				question.ChatType = 2
+			} else {
+				question.ChatType = 1
+			}
+
+			err = clients.QuestionLogCli.SendQueryRecord(question)
+			if err != nil {
+				fmt.Println("添加问题日志出错", err)
+				return
+			}
+		}
+	}
+}

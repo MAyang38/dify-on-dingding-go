@@ -2,6 +2,7 @@ package main
 
 import (
 	"ding/bot"
+	dingbot "ding/bot/dingtalk"
 	"ding/clients"
 	"ding/conf"
 	myconst "ding/consts"
@@ -32,5 +33,5 @@ func main() {
 	}
 	// 初始化dify和钉钉机器人
 	bot.InitDifyClient()
-	bot.StartDingRobot()
+	dingbot.StartDingRobot()
 }

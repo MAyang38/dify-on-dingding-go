@@ -157,15 +157,7 @@ func (client *difyClient) CallAPIBlock(query, conversationID, userID string) (st
 	return response.Answer, nil
 }
 
-func (client *difyClient) CallAPIStreaming(query, userID string, msg *Message) (*bufio.Scanner, error) {
-	conversationID, exists := client.GetSession(userID)
-	if exists {
-		fmt.Println("Conversation ID for user:", userID, "is", conversationID)
-	} else {
-		conversationID = ""
-		fmt.Println("No conversation ID found for user:", userID)
-	}
-	msg.ConversationID = conversationID
+func (client *difyClient) CallAPIStreaming(query, userID string, conversationID string, permission int) (*bufio.Scanner, error) {
 
 	// 初始化客户端
 	clientHttp := &http.Client{}
@@ -193,7 +185,7 @@ func (client *difyClient) CallAPIStreaming(query, userID string, msg *Message) (
 	// 设置必要的请求头
 	req.Header.Set("Content-Type", "application/json")
 	if clients.PermissionControlInit == 1 {
-		difyApiKeyPermission, err := client.getHeader(msg.Permission)
+		difyApiKeyPermission, err := client.getHeader(permission)
 		if err != nil {
 			return nil, err
 		}
@@ -255,6 +247,10 @@ func (client *difyClient) ProcessEvent(userID string, event StreamingEvent, answ
 			// 发送停止信号
 			cm.CloseChannel()
 			return errors.New("dify err")
+		}
+	case "workflow_finished":
+		{
+			// 发送卡片信号
 		}
 	}
 	return nil

@@ -9,7 +9,7 @@ const (
   },
   "contents": [
     {
-      "type": "text",
+      "type": "markdown",
       "text": "%s",
       "id": "text_1693929551595"
     },
