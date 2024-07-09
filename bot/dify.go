@@ -9,8 +9,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	dingtalkim_1_0 "github.com/alibabacloud-go/dingtalk/im_1_0"
-	"github.com/alibabacloud-go/tea/tea"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -159,7 +157,16 @@ func (client *difyClient) CallAPIBlock(query, conversationID, userID string) (st
 	return response.Answer, nil
 }
 
-func (client *difyClient) CallAPIStreaming(query, conversationID, userID string, cardInstanceId string) error {
+func (client *difyClient) CallAPIStreaming(query, userID string, cardInstanceId string, msg *Message) (*bufio.Scanner, error) {
+	conversationID, exists := client.GetSession(userID)
+	if exists {
+		fmt.Println("Conversation ID for user:", userID, "is", conversationID)
+	} else {
+		conversationID = ""
+		fmt.Println("No conversation ID found for user:", userID)
+	}
+	msg.ConversationID = conversationID
+
 	// 初始化客户端
 	clientHttp := &http.Client{}
 	// 构建请求体
@@ -174,13 +181,13 @@ func (client *difyClient) CallAPIStreaming(query, conversationID, userID string,
 	// 将请求体转换为JSON
 	jsonData, err := json.Marshal(requestBody)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	// 创建请求
 	req, err := http.NewRequest("POST", client.ApiBase+"/chat-messages", bytes.NewBuffer(jsonData))
 	if err != nil {
 		fmt.Println("Error creating request:", err)
-		return err
+		return nil, err
 	}
 
 	// 设置必要的请求头
@@ -188,7 +195,7 @@ func (client *difyClient) CallAPIStreaming(query, conversationID, userID string,
 	if clients.PermissionControlInit == 1 {
 		difyApiKeyPermission, err := client.getHeader(userID)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		req.Header.Set("Authorization", "Bearer "+difyApiKeyPermission)
 	} else {
@@ -198,9 +205,9 @@ func (client *difyClient) CallAPIStreaming(query, conversationID, userID string,
 	resp, err := clientHttp.Do(req)
 	if err != nil {
 		fmt.Println("Error sending request:", err)
-		return err
+		return nil, err
 	}
-	defer resp.Body.Close()
+	//defer resp.Body.Close()
 
 	// 检查响应状态码
 	if resp.StatusCode != http.StatusOK {
@@ -208,93 +215,93 @@ func (client *difyClient) CallAPIStreaming(query, conversationID, userID string,
 		bodyBytes, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
 			fmt.Println("Error reading response body:", err)
-			return err
+			return nil, err
 		}
 		bodyString := string(bodyBytes)
 
 		// 打印错误信息
 		fmt.Printf("Error: received non-200 response code: %d\n", resp.StatusCode)
 		fmt.Printf("Response body: %s\n", bodyString)
-		return errors.New("Error: received non-200 response code")
+		return nil, errors.New("Error: received non-200 response code")
 	}
 
 	scanner := bufio.NewScanner(resp.Body)
-	var answerBuilder strings.Builder
-	cm := utils.NewChannelManager()
-	defer func() {
-		if !cm.IsClosed() {
-			cm.CloseChannel()
-		}
-	}()
-	//updateChannel := make(chan string, 1)
-	//defer close(updateChannel)
-	//stopChannel := make(chan struct{}) // 创建停止信号通道
+	return scanner, nil
+	//var answerBuilder strings.Builder
+	//cm := utils.NewChannelManager()
+	//defer func() {
+	//	if !cm.IsClosed() {
+	//		cm.CloseChannel()
+	//	}
+	//}()
+	////updateChannel := make(chan string, 1)
+	////defer close(updateChannel)
+	////stopChannel := make(chan struct{}) // 创建停止信号通道
+	//
+	//go func(*utils.ChannelManager) {
+	//	var lastContent string
+	//	timer := time.NewTicker(200 * time.Millisecond) // 每200ms触发一次
+	//	defer timer.Stop()
+	//	for {
+	//		select {
+	//		case content := <-cm.DataCh:
+	//			{
+	//				fmt.Println("接收到的内容", content)
+	//				lastContent = content
+	//			}
+	//		case <-timer.C:
+	//			if lastContent != "" {
+	//				go func(content string) {
+	//					err := UpdateDingTalkCard(content, cardInstanceId)
+	//					if err != nil {
+	//						fmt.Println("Error updating DingTalk card:", err)
+	//					}
+	//				}(lastContent)
+	//				lastContent = ""
+	//			}
+	//		case <-cm.CloseCh: // 接收到停止信号，退出循环
+	//			return
+	//		}
+	//	}
+	//}(cm)
+	//
+	//for scanner.Scan() {
+	//	var event StreamingEvent
+	//	line := scanner.Text()
+	//	if line == "" {
+	//		continue
+	//	}
+	//	if strings.HasPrefix(line, "data: ") {
+	//		line = strings.TrimPrefix(line, "data: ")
+	//	}
+	//	if err = json.Unmarshal([]byte(line), &event); err != nil {
+	//		fmt.Println("Error decoding JSON:", err)
+	//		continue
+	//	}
+	//
+	//	err = client.processEvent(userID, event, &answerBuilder, cm)
+	//	if err != nil {
+	//		return err
+	//	}
+	//
+	//}
+	//
+	//if err = scanner.Err(); err != nil {
+	//	fmt.Println("Error reading response:", err)
+	//	return err
+	//}
+	//if !cm.IsClosed() {
+	//	cm.CloseChannel()
+	//}
+	//fmt.Println("Final Answer:", answerBuilder.String())
+	//time.Sleep(300)
+	//err = UpdateDingTalkCard(answerBuilder.String(), cardInstanceId)
+	//if err != nil {
+	//	fmt.Println("Error updating DingTalk card:", err)
+	//}
 
-	go func(*utils.ChannelManager) {
-		var lastContent string
-		timer := time.NewTicker(200 * time.Millisecond) // 每200ms触发一次
-		defer timer.Stop()
-		for {
-			select {
-			case content := <-cm.DataCh:
-				{
-					fmt.Println("接收到的内容", content)
-					lastContent = content
-				}
-			case <-timer.C:
-				if lastContent != "" {
-					go func(content string) {
-						err := updateDingTalkCard(content, cardInstanceId)
-						if err != nil {
-							fmt.Println("Error updating DingTalk card:", err)
-						}
-					}(lastContent)
-					lastContent = ""
-				}
-			case <-cm.CloseCh: // 接收到停止信号，退出循环
-				return
-			}
-		}
-	}(cm)
-
-	for scanner.Scan() {
-		var event StreamingEvent
-		line := scanner.Text()
-		if line == "" {
-			continue
-		}
-		if strings.HasPrefix(line, "data: ") {
-			line = strings.TrimPrefix(line, "data: ")
-		}
-		if err = json.Unmarshal([]byte(line), &event); err != nil {
-			fmt.Println("Error decoding JSON:", err)
-			continue
-		}
-
-		err = client.processEvent(userID, event, &answerBuilder, cm)
-		if err != nil {
-			return err
-		}
-
-	}
-
-	if err = scanner.Err(); err != nil {
-		fmt.Println("Error reading response:", err)
-		return err
-	}
-	if !cm.IsClosed() {
-		cm.CloseChannel()
-	}
-	fmt.Println("Final Answer:", answerBuilder.String())
-	time.Sleep(300)
-	err = updateDingTalkCard(answerBuilder.String(), cardInstanceId)
-	if err != nil {
-		fmt.Println("Error updating DingTalk card:", err)
-	}
-
-	return nil
 }
-func (client *difyClient) processEvent(userID string, event StreamingEvent, answerBuilder *strings.Builder, cm *utils.ChannelManager) error {
+func (client *difyClient) ProcessEvent(userID string, event StreamingEvent, answerBuilder *strings.Builder, cm *utils.ChannelManager) error {
 	switch event.Event {
 	case "message":
 		{
@@ -325,23 +332,7 @@ func (client *difyClient) processEvent(userID string, event StreamingEvent, answ
 	return nil
 
 }
-func updateDingTalkCard(content string, cardInstanceId string) error {
-	fmt.Println("发送内容:", content)
 
-	timeStart := time.Now()
-	title := ""
-	updateRequest := &dingtalkim_1_0.UpdateRobotInteractiveCardRequest{
-		CardBizId: tea.String(cardInstanceId),
-		CardData:  tea.String(fmt.Sprintf(consts.MessageCardTemplate, title, content)),
-	}
-	_, err := clients.DingtalkClient1.UpdateInteractiveCard(updateRequest)
-	if err != nil {
-		return err
-	}
-	elapsed := time.Since(timeStart)
-	fmt.Printf("updateDingTalkCard 执行时间: %s\n", elapsed)
-	return nil
-}
 func (client *difyClient) getHeader(userId string) (apiKey string, err error) {
 	permission, err := clients.PermissionControl.GetUserPermissionLevel(userId)
 	if err != nil {

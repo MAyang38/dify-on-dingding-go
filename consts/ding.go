@@ -7,13 +7,6 @@ const (
     "autoLayout": true,
     "enableForward": true
   },
-  "header": {
-    "title": {
-      "type": "text",
-      "text": "流输出模式"
-    },
-    "logo": "@lALPDfJ6V_FPDmvNAfTNAfQ"
-  },
   "contents": [
     {
       "type": "text",
@@ -38,4 +31,10 @@ const (
 	OutputTypeText     = "Text"
 	OutputTypeStream   = "Stream"
 	OutputTypeMarkDown = "MarkDown"
+
+	ReceivedTypeText  = "text"
+	ReceivedTypeImage = "picture"
+	ReceivedTypeVoice = "audio"
 )
+
+var VoicePrefix = []string{}

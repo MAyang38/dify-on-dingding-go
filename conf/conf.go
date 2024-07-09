@@ -1,8 +1,11 @@
 package conf
 
 import (
+	"ding/consts"
+	"fmt"
 	"github.com/joho/godotenv"
 	"os"
+	"strings"
 )
 
 func LoadConfig() error {
@@ -19,5 +22,12 @@ func LoadConfig() error {
 			return err
 		}
 	}
+	// 从环境变量中获取关键词
+	VoiceKeywords := os.Getenv("VOICE_KEYWORDS")
+	if VoiceKeywords == "" {
+		fmt.Println("No keywords found in environment")
+	}
+	// 将语音关键词字符串分割为 slice
+	consts.VoicePrefix = strings.Split(VoiceKeywords, ",")
 	return nil
 }

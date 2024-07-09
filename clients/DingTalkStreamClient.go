@@ -4,6 +4,7 @@ import (
 	openapi "github.com/alibabacloud-go/darabonba-openapi/v2/client"
 	dingtalkim_1_0 "github.com/alibabacloud-go/dingtalk/im_1_0"
 	dingtalkoauth2_1_0 "github.com/alibabacloud-go/dingtalk/oauth2_1_0"
+	"github.com/alibabacloud-go/dingtalk/robot_1_0"
 	util "github.com/alibabacloud-go/tea-utils/v2/service"
 	"github.com/alibabacloud-go/tea/tea"
 	"os"
@@ -17,6 +18,7 @@ type DingTalkClient struct {
 	tokenExpireAt time.Time
 	imClient      *dingtalkim_1_0.Client
 	oauthClient   *dingtalkoauth2_1_0.Client
+	robotClient   *robot_1_0.Client
 }
 
 var (
@@ -34,11 +36,13 @@ func NewDingTalkClient(clientId, clientSecret string) *DingTalkClient {
 	config.RegionId = tea.String("central")
 	imClient, _ := dingtalkim_1_0.NewClient(config)
 	oauthClient, _ := dingtalkoauth2_1_0.NewClient(config)
+	robotClient, _ := robot_1_0.NewClient(config)
 	return &DingTalkClient{
 		ClientID:     clientId,
 		clientSecret: clientSecret,
 		imClient:     imClient,
 		oauthClient:  oauthClient,
+		robotClient:  robotClient,
 	}
 }
 
@@ -116,6 +120,36 @@ func (c *DingTalkClient) UpdateInteractiveCard(request *dingtalkim_1_0.UpdateRob
 			}
 		}()
 		_resp, _e = c.imClient.UpdateRobotInteractiveCardWithOptions(request, headers, &util.RuntimeOptions{})
+		if _e != nil {
+			return
+		}
+		return
+	}()
+	if tryErr != nil {
+		return nil, tryErr
+	}
+	return response, nil
+}
+
+func (c *DingTalkClient) RobotMessageFileDownload(request *robot_1_0.RobotMessageFileDownloadRequest) (*robot_1_0.RobotMessageFileDownloadResponse, error) {
+	accessToken, err := c.GetAccessToken()
+	if err != nil {
+		return nil, err
+	}
+
+	headers := &robot_1_0.RobotMessageFileDownloadHeaders{
+		XAcsDingtalkAccessToken: tea.String(accessToken),
+	}
+	request.RobotCode = &c.ClientID
+	response, tryErr := func() (_resp *robot_1_0.RobotMessageFileDownloadResponse, _e error) {
+		defer func() {
+			if r := tea.Recover(recover()); r != nil {
+				_e = r
+			}
+		}()
+		_resp, _e = c.robotClient.RobotMessageFileDownloadWithOptions(request, headers, &util.RuntimeOptions{})
+
+		//_resp, _e = c.imClient.UpdateRobotInteractiveCardWithOptions(request, headers, &util.RuntimeOptions{})
 		if _e != nil {
 			return
 		}
