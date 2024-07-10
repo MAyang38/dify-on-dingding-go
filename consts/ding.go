@@ -1,7 +1,7 @@
 package consts
 
 const (
-	MessageCardTemplate = `
+	MessageCardTemplateWithTitle1 = `
 {
   "config": {
     "autoLayout": true,
@@ -17,6 +17,22 @@ const (
       "type": "divider",
       "id": "divider_1693929551595"
     },
+    {
+      "type": "markdown",
+      "text": "%s",
+      "id": "markdown_1693929674245"
+    }
+  ]
+}
+`
+
+	MessageCardTemplateWithoutTitle = `
+{
+  "config": {
+    "autoLayout": true,
+    "enableForward": true
+  },
+   "contents": [
     {
       "type": "markdown",
       "text": "%s",

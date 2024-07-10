@@ -4,6 +4,7 @@ import (
 	"context"
 	"ding/bot"
 	"ding/clients"
+	"ding/consts"
 	"ding/models"
 	selfutils "ding/utils"
 	"encoding/json"
@@ -98,7 +99,8 @@ func (msg *DingMessage) processMessage() {
 				case <-timer.C:
 					if lastContent != "" {
 						go func(content string) {
-							err := UpdateDingTalkCard("**回答中**", content, cardInstanceId)
+							cardData := fmt.Sprintf(consts.MessageCardTemplateWithTitle1, "**回答中**", content)
+							err := UpdateDingTalkCard(cardData, cardInstanceId)
 							if err != nil {
 								fmt.Println("Error updating DingTalk card:", err)
 							}
@@ -129,6 +131,8 @@ func (msg *DingMessage) processMessage() {
 
 			err = bot.DifyClient.ProcessEvent(userID, event, &answerBuilder, cm)
 			if err != nil {
+				cardData := fmt.Sprintf(consts.MessageCardTemplateWithoutTitle, "服务器内部错误")
+				err = UpdateDingTalkCard(cardData, cardInstanceId)
 				fmt.Printf("processEvent err %s\n", err)
 				return
 			}
@@ -144,7 +148,8 @@ func (msg *DingMessage) processMessage() {
 		}
 		fmt.Println("Final Answer:", answerBuilder.String())
 		time.Sleep(300)
-		err = UpdateDingTalkCard("", answerBuilder.String(), cardInstanceId)
+		cardData := fmt.Sprintf(consts.MessageCardTemplateWithoutTitle, answerBuilder.String())
+		err = UpdateDingTalkCard(cardData, cardInstanceId)
 		if err != nil {
 			fmt.Println("Error updating DingTalk card:", err)
 		}

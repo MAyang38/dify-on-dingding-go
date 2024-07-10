@@ -244,13 +244,13 @@ func OnChatReceiveMarkDown(ctx context.Context, data *chatbot.BotCallbackDataMod
 
 }
 
-func UpdateDingTalkCard(title string, content string, cardInstanceId string) error {
+func UpdateDingTalkCard(cardData string, cardInstanceId string) error {
 	//fmt.Println("发送内容:", content)
 
 	timeStart := time.Now()
 	updateRequest := &dingtalkim_1_0.UpdateRobotInteractiveCardRequest{
 		CardBizId: tea.String(cardInstanceId),
-		CardData:  tea.String(fmt.Sprintf(consts.MessageCardTemplate, title, content)),
+		CardData:  tea.String(cardData),
 	}
 	_, err := clients.DingtalkClient1.UpdateInteractiveCard(updateRequest)
 	if err != nil {
@@ -262,7 +262,7 @@ func UpdateDingTalkCard(title string, content string, cardInstanceId string) err
 }
 func sendInteractiveCard(cardInstanceId string, msg *DingMessage) {
 	// send interactive card; 发送交互式卡片
-	cardData := fmt.Sprintf(consts.MessageCardTemplate, "**o思考中o**", "")
+	cardData := fmt.Sprintf(consts.MessageCardTemplateWithTitle1, "**o思考中o**", "")
 	sendOptions := &dingtalkim_1_0.SendRobotInteractiveCardRequestSendOptions{}
 	request := &dingtalkim_1_0.SendRobotInteractiveCardRequest{
 		CardTemplateId: tea.String("StandardCard"),
