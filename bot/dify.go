@@ -3,12 +3,14 @@ package bot
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"ding/clients"
 	"ding/consts"
 	"ding/utils"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/go-redis/redis/v8"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -24,10 +26,10 @@ type difySession struct {
 }
 
 type difyClient struct {
-	ApiBase    string
-	DifyApiKey string
-	Sessions   map[string]difySession // 存储会话
-	mu         sync.Mutex             // 保护 Sessions 免受并发访问问题
+	ApiBase     string
+	DifyApiKey  string
+	RedisClient *redis.Client // Redis客户端
+	mu          sync.Mutex    // 保护 Sessions 免受并发访问问题
 }
 
 var DifyClient difyClient
@@ -35,10 +37,23 @@ var DifyClient difyClient
 func InitDifyClient() {
 	API_KEY := os.Getenv("API_KEY")
 	API_URL := os.Getenv("API_URL")
+	REDIS_ADDR := os.Getenv("REDIS_ADDR")
+	REDIS_PASSWORD := os.Getenv("REDIS_PASSWORD")
 	DifyClient = difyClient{
 		ApiBase:    API_URL,
 		DifyApiKey: API_KEY,
-		Sessions:   make(map[string]difySession),
+		RedisClient: redis.NewClient(&redis.Options{
+			Addr:     REDIS_ADDR,
+			Password: REDIS_PASSWORD,
+			DB:       0, // 使用默认数据库
+		}),
+	}
+	// 检查Redis连接
+	ctx := context.Background()
+	_, err := DifyClient.RedisClient.Ping(ctx).Result()
+	if err != nil {
+		fmt.Println("Error connecting to Redis:", err)
+		os.Exit(1)
 	}
 }
 
@@ -80,26 +95,57 @@ type StreamingEvent struct {
 func (client *difyClient) AddSession(userID, conversationID string) {
 	client.mu.Lock()
 	defer client.mu.Unlock()
-	client.Sessions[userID] = difySession{
+
+	session := difySession{
 		conversationID: conversationID,
 		expiry:         time.Now().Add(30 * time.Minute),
 	}
+
+	// 使用Redis存储会话
+	ctx := context.Background()
+	sessionData, err := json.Marshal(session)
+	if err != nil {
+		fmt.Println("Error marshalling session data:", err)
+		return
+	}
+
+	err = client.RedisClient.Set(ctx, userID, sessionData, 30*time.Minute).Err()
+	if err != nil {
+		fmt.Println("Error setting session data in Redis:", err)
+	}
+
 }
 
 // 获取会话
 func (client *difyClient) GetSession(userID string) (string, bool) {
 	client.mu.Lock()
 	defer client.mu.Unlock()
-	sess, exists := client.Sessions[userID]
-	if !exists {
+
+	// 从Redis获取会话
+	ctx := context.Background()
+	sessionData, err := client.RedisClient.Get(ctx, userID).Result()
+	if err == redis.Nil {
+		// 会话不存在
+		return "", false
+	} else if err != nil {
+		fmt.Println("Error getting session data from Redis:", err)
 		return "", false
 	}
-	if time.Now().After(sess.expiry) {
+
+	var session difySession
+	err = json.Unmarshal([]byte(sessionData), &session)
+	if err != nil {
+		fmt.Println("Error unmarshalling session data:", err)
+		return "", false
+	}
+
+	if time.Now().After(session.expiry) {
 		// 会话已过期
-		delete(client.Sessions, userID)
+		client.RedisClient.Del(ctx, userID)
 		return "", false
 	}
-	return sess.conversationID, true
+	return session.conversationID, true
+
 }
 
 func (client *difyClient) CallAPIBlock(query, conversationID, userID string) (string, error) {

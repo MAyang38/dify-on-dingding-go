@@ -10,8 +10,8 @@ const (
   "contents": [
     {
       "type": "markdown",
-      "text": "%s",
-      "id": "text_1693929551595"
+      "text": "![loading](https://dify-oss-test.oss-cn-shanghai.aliyuncs.com/gif/loading_gif50.gif)",
+ 		"id": "text_1693929551595"
     },
     {
       "type": "divider",

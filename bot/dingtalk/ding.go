@@ -262,7 +262,7 @@ func UpdateDingTalkCard(cardData string, cardInstanceId string) error {
 }
 func sendInteractiveCard(cardInstanceId string, msg *DingMessage) {
 	// send interactive card; 发送交互式卡片
-	cardData := fmt.Sprintf(consts.MessageCardTemplateWithTitle1, "**o思考中o**", "")
+	cardData := fmt.Sprintf(consts.MessageCardTemplateWithTitle1, "")
 	sendOptions := &dingtalkim_1_0.SendRobotInteractiveCardRequestSendOptions{}
 	request := &dingtalkim_1_0.SendRobotInteractiveCardRequest{
 		CardTemplateId: tea.String("StandardCard"),

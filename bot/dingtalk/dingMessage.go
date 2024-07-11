@@ -99,7 +99,7 @@ func (msg *DingMessage) processMessage() {
 				case <-timer.C:
 					if lastContent != "" {
 						go func(content string) {
-							cardData := fmt.Sprintf(consts.MessageCardTemplateWithTitle1, "**回答中**", content)
+							cardData := fmt.Sprintf(consts.MessageCardTemplateWithTitle1, content)
 							err := UpdateDingTalkCard(cardData, cardInstanceId)
 							if err != nil {
 								fmt.Println("Error updating DingTalk card:", err)

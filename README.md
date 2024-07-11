@@ -34,10 +34,14 @@ dify官网： https://dify.ai/
        Output_Type: 机器人输出内容模式， Text为文本， Stream为流输出，Markdown为Markdown格式输出
 
 
-# docker部署
-docker build -t your_image_name:latest .
-docker run -d your_container_name -p 7777:7777 your_image_name:latest 
+# 部署
 
+## docker compose部署 （*推荐*）
+    配置好上面的变量后，在项目目录下执行下面命令，即可与机器人对话 
+    docker-compose up -d
+
+## 本地部署
+    需要配go的环境和安装redis，然后编译执行main.go
 ## Markdown模式
 
 ![img.png](consts%2Fimg.png)
