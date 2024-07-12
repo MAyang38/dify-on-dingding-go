@@ -19,7 +19,7 @@ const (
     },
     {
       "type": "markdown",
-      "text": "%s",
+      "text": "%s ",
       "id": "markdown_1693929674245"
     }
   ]

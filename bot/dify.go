@@ -1,7 +1,6 @@
 package bot
 
 import (
-	"bufio"
 	"bytes"
 	"context"
 	"ding/clients"
@@ -21,8 +20,8 @@ import (
 )
 
 type difySession struct {
-	conversationID string
-	expiry         time.Time
+	ConversationID string
+	Expiry         time.Time
 }
 
 type difyClient struct {
@@ -97,8 +96,8 @@ func (client *difyClient) AddSession(userID, conversationID string) {
 	defer client.mu.Unlock()
 
 	session := difySession{
-		conversationID: conversationID,
-		expiry:         time.Now().Add(30 * time.Minute),
+		ConversationID: conversationID,
+		Expiry:         time.Now().Add(30 * time.Minute),
 	}
 
 	// 使用Redis存储会话
@@ -139,12 +138,12 @@ func (client *difyClient) GetSession(userID string) (string, bool) {
 		return "", false
 	}
 
-	if time.Now().After(session.expiry) {
+	if time.Now().After(session.Expiry) {
 		// 会话已过期
 		client.RedisClient.Del(ctx, userID)
 		return "", false
 	}
-	return session.conversationID, true
+	return session.ConversationID, true
 
 }
 
@@ -203,7 +202,7 @@ func (client *difyClient) CallAPIBlock(query, conversationID, userID string) (st
 	return response.Answer, nil
 }
 
-func (client *difyClient) CallAPIStreaming(query, userID string, conversationID string, permission int) (*bufio.Scanner, error) {
+func (client *difyClient) CallAPIStreaming(query, userID string, conversationID string, permission int) (*http.Response, error) {
 
 	// 初始化客户端
 	clientHttp := &http.Client{}
@@ -263,8 +262,7 @@ func (client *difyClient) CallAPIStreaming(query, userID string, conversationID 
 		return nil, errors.New("Error: received non-200 response code")
 	}
 
-	scanner := bufio.NewScanner(resp.Body)
-	return scanner, nil
+	return resp, nil
 
 }
 func (client *difyClient) ProcessEvent(userID string, event StreamingEvent, answerBuilder *strings.Builder, cm *utils.ChannelManager) error {
@@ -294,10 +292,23 @@ func (client *difyClient) ProcessEvent(userID string, event StreamingEvent, answ
 			cm.CloseChannel()
 			return errors.New("dify err")
 		}
+	case "workflow_started":
+		{
+
+		}
 	case "workflow_finished":
 		{
-			// 发送卡片信号
+
 		}
+	case "node_started":
+		{
+
+		}
+	case "node_finished":
+		{
+
+		}
+
 	}
 	return nil
 

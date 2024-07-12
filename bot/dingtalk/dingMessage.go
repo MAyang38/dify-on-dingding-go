@@ -1,6 +1,7 @@
 package dingbot
 
 import (
+	"bufio"
 	"context"
 	"ding/bot"
 	"ding/clients"
@@ -17,16 +18,19 @@ import (
 )
 
 type DingMessage struct {
-	Ctx            context.Context
-	Data           *chatbot.BotCallbackDataModel
-	MsgType        string
-	Permission     int
-	IsGroup        bool
-	CardInstanceId string
-	ReceivedMsgStr string
-	ConversationID string
-	ImageCodeList  []string
-	ImageUrlList   []string
+	Ctx              context.Context
+	Data             *chatbot.BotCallbackDataModel
+	MsgType          string
+	Permission       int
+	IsGroup          bool
+	CardInstanceId   string
+	ReceivedMsgStr   string
+	ConversationID   string
+	ImageCodeList    []string
+	ImageUrlList     []string
+	ProcessStartTime time.Time
+	ProcessEndTime   time.Time
+	ProcessDurTime   time.Duration
 }
 
 var (
@@ -49,9 +53,20 @@ func messageConsumer() {
 		msg.processMessage()
 	}
 }
-func (msg *DingMessage) processMessage() {
 
+func (msg *DingMessage) startProcessing() {
+	msg.ProcessStartTime = time.Now()
+}
+
+func (msg *DingMessage) endProcessing() {
+	msg.ProcessEndTime = time.Now()
+	msg.ProcessDurTime = msg.ProcessEndTime.Sub(msg.ProcessStartTime)
+	fmt.Println("Duration:", msg.ProcessDurTime)
+}
+func (msg *DingMessage) processMessage() {
+	msg.startProcessing()
 	if msg.ReceivedMsgStr != "" {
+		// 获取用户sessionId
 		userID := msg.Data.SenderId
 		conversationID, exists := bot.DifyClient.GetSession(msg.Data.SenderId)
 		if exists {
@@ -61,12 +76,13 @@ func (msg *DingMessage) processMessage() {
 			fmt.Println("No conversation ID found for user:", userID)
 		}
 		msg.ConversationID = conversationID
-		// 在这里处理你的消息，例如调用API等
-		streamScanner, err := bot.DifyClient.CallAPIStreaming(msg.ReceivedMsgStr, userID, conversationID, msg.Permission)
+		// 调用dify API 获取工作流
+		difyResp, err := bot.DifyClient.CallAPIStreaming(msg.ReceivedMsgStr, userID, conversationID, msg.Permission)
 		if err != nil {
 			fmt.Println("Error CallAPIStreaming:", err)
 			return
 		}
+		defer difyResp.Body.Close()
 		// 发送卡片
 		u, err := uuid.NewUUID()
 		if err != nil {
@@ -75,7 +91,6 @@ func (msg *DingMessage) processMessage() {
 		}
 		cardInstanceId := u.String()
 		msg.CardInstanceId = cardInstanceId
-
 		// 接收流返回
 		var answerBuilder strings.Builder
 		cm := selfutils.NewChannelManager()
@@ -85,7 +100,7 @@ func (msg *DingMessage) processMessage() {
 			}
 		}()
 
-		go func(*selfutils.ChannelManager) {
+		go func(cm *selfutils.ChannelManager, cardInstanceId string) {
 			var lastContent string
 			timer := time.NewTicker(200 * time.Millisecond) // 每200ms触发一次
 			defer timer.Stop()
@@ -109,12 +124,15 @@ func (msg *DingMessage) processMessage() {
 					}
 				case <-cm.CloseCh: // 接收到停止信号，退出循环
 					return
+					//case <-cm.CardStart:
+					//sendInteractiveCard(cardInstanceId, msg)
+					//cm.CardStart = nil
 				}
+
 			}
-		}(cm)
-
+		}(cm, cardInstanceId)
 		sendInteractiveCard(cardInstanceId, msg)
-
+		streamScanner := bufio.NewScanner(difyResp.Body)
 		for streamScanner.Scan() {
 			var event bot.StreamingEvent
 			line := streamScanner.Text()
@@ -153,6 +171,8 @@ func (msg *DingMessage) processMessage() {
 		if err != nil {
 			fmt.Println("Error updating DingTalk card:", err)
 		}
+		// 结束处理
+		msg.endProcessing()
 		// 记录发送日志
 		if clients.PermissionControlInit == 1 {
 			conversationID, _ := bot.DifyClient.GetSession(userID)
