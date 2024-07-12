@@ -42,8 +42,16 @@ var (
 func DingVarInit() {
 	messageQueue = make(chan *DingMessage, 1000) // 设置队列容量
 	dingSupportType = []string{"text", "audio", "picture"}
-	wg.Add(1)
-	go messageConsumer()
+
+	numConsumers := 5
+	// 启动多个消费者
+	for i := 0; i < numConsumers; i++ {
+		wg.Add(1)
+		go messageConsumer()
+	}
+}
+func DingChannelDestory() {
+	close(messageQueue)
 }
 
 func messageConsumer() {

@@ -266,8 +266,18 @@ func (client *difyClient) CallAPIStreaming(query, userID string, conversationID 
 
 }
 func (client *difyClient) ProcessEvent(userID string, event StreamingEvent, answerBuilder *strings.Builder, cm *utils.ChannelManager) error {
+	println(event.Event)
 	switch event.Event {
 	case "message":
+		{
+			answerBuilder.WriteString(event.Answer)
+			select {
+			case cm.DataCh <- answerBuilder.String():
+				time.Sleep(10)
+			default:
+			}
+		}
+	case "agent_message":
 		{
 			answerBuilder.WriteString(event.Answer)
 			select {

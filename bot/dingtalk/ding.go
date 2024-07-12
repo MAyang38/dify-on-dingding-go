@@ -24,11 +24,12 @@ import (
 func StartDingRobot() {
 
 	DingVarInit()
+	defer DingChannelDestory()
+
 	logger.SetLogger(logger.NewStdTestLogger())
 	clientId := os.Getenv("CLIENT_ID")
 	clientSecret := os.Getenv("CLIENT_SECRET")
 	topic := os.Getenv("Ding_Topic")
-
 	cli := &client.StreamClient{}
 	if os.Getenv("Output_Type") == consts.OutputTypeText {
 		//纯文本或markdown输出
