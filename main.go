@@ -1,7 +1,7 @@
 package main
 
 import (
-	"ding/bot"
+	"ding/bot/difybot"
 	dingbot "ding/bot/dingtalk"
 	"ding/clients"
 	"ding/conf"
@@ -32,6 +32,14 @@ func main() {
 		}
 	}
 	// 初始化dify和钉钉机器人
-	bot.InitDifyClient()
+	difybot.InitDifyClient()
 	dingbot.StartDingRobot()
+
+	// hertz http框架
+	//h := server.Default()
+	//// 添加请求日志中间件
+	//h.Use(middlewares.RequestLogger())
+	//h.GET("/hello", handlers.TestTandlers.HelloHandler)
+	//h.POST("/dify/chat-message", handlers.DifyTandlers.ChatMessageHandler)
+	//h.Spin()
 }

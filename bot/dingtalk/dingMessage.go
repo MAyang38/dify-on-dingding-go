@@ -3,7 +3,7 @@ package dingbot
 import (
 	"bufio"
 	"context"
-	"ding/bot"
+	"ding/bot/difybot"
 	"ding/clients"
 	"ding/consts"
 	"ding/models"
@@ -76,7 +76,7 @@ func (msg *DingMessage) processMessage() {
 	if msg.ReceivedMsgStr != "" {
 		// 获取用户sessionId
 		userID := msg.Data.SenderId
-		conversationID, exists := bot.DifyClient.GetSession(msg.Data.SenderId)
+		conversationID, exists := difybot.DifyClient.GetSession(msg.Data.SenderId)
 		if exists {
 			fmt.Println("Conversation ID for user:", userID, "is", conversationID)
 		} else {
@@ -85,7 +85,7 @@ func (msg *DingMessage) processMessage() {
 		}
 		msg.ConversationID = conversationID
 		// 调用dify API 获取工作流
-		difyResp, err := bot.DifyClient.CallAPIStreaming(msg.ReceivedMsgStr, userID, conversationID, msg.Permission)
+		difyResp, err := difybot.DifyClient.CallAPIStreaming(msg.ReceivedMsgStr, userID, conversationID, msg.Permission)
 		if err != nil {
 			fmt.Println("Error CallAPIStreaming:", err)
 			return
@@ -142,7 +142,7 @@ func (msg *DingMessage) processMessage() {
 		sendInteractiveCard(cardInstanceId, msg)
 		streamScanner := bufio.NewScanner(difyResp.Body)
 		for streamScanner.Scan() {
-			var event bot.StreamingEvent
+			var event difybot.StreamingEvent
 			line := streamScanner.Text()
 			if line == "" {
 				continue
@@ -155,7 +155,7 @@ func (msg *DingMessage) processMessage() {
 				continue
 			}
 
-			err = bot.DifyClient.ProcessEvent(userID, event, &answerBuilder, cm)
+			err = difybot.DifyClient.ProcessEvent(userID, event, &answerBuilder, cm)
 			if err != nil {
 				cardData := fmt.Sprintf(consts.MessageCardTemplateWithoutTitle, "服务器内部错误")
 				err = UpdateDingTalkCard(cardData, cardInstanceId)
@@ -183,7 +183,7 @@ func (msg *DingMessage) processMessage() {
 		msg.endProcessing()
 		// 记录发送日志
 		if clients.PermissionControlInit == 1 {
-			conversationID, _ := bot.DifyClient.GetSession(userID)
+			conversationID, _ := difybot.DifyClient.GetSession(userID)
 			msg.ConversationID = conversationID
 			question := models.Question{
 				Name:      msg.Data.SenderNick,

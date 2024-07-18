@@ -2,7 +2,7 @@ package dingbot
 
 import (
 	"context"
-	"ding/bot"
+	"ding/bot/difybot"
 	"ding/clients"
 	"ding/consts"
 	selfutils "ding/utils"
@@ -78,7 +78,7 @@ func OnChatReceiveText(ctx context.Context, data *chatbot.BotCallbackDataModel) 
 	replyMsgStr := strings.TrimSpace(data.Text.Content)
 	replier := chatbot.NewChatbotReplier()
 
-	conversationID, exists := bot.DifyClient.GetSession(data.SenderId)
+	conversationID, exists := difybot.DifyClient.GetSession(data.SenderId)
 	if exists {
 		fmt.Println("Conversation ID for user:", data.SenderId, "is", conversationID)
 	} else {
@@ -86,7 +86,7 @@ func OnChatReceiveText(ctx context.Context, data *chatbot.BotCallbackDataModel) 
 		fmt.Println("No conversation ID found for user:", data.SenderId)
 	}
 
-	res, err := bot.DifyClient.CallAPIBlock(replyMsgStr, conversationID, data.SenderId)
+	res, err := difybot.DifyClient.CallAPIBlock(replyMsgStr, conversationID, data.SenderId)
 	if err != nil {
 		fmt.Println(err)
 		return nil, err
@@ -223,7 +223,7 @@ func OnChatReceiveMarkDown(ctx context.Context, data *chatbot.BotCallbackDataMod
 	replyMsgStr := strings.TrimSpace(data.Text.Content)
 	replier := chatbot.NewChatbotReplier()
 
-	conversationID, exists := bot.DifyClient.GetSession(data.SenderId)
+	conversationID, exists := difybot.DifyClient.GetSession(data.SenderId)
 	if exists {
 		fmt.Println("Conversation ID for user:", data.SenderId, "is", conversationID)
 	} else {
@@ -231,7 +231,7 @@ func OnChatReceiveMarkDown(ctx context.Context, data *chatbot.BotCallbackDataMod
 		fmt.Println("No conversation ID found for user:", data.SenderId)
 	}
 
-	res, err := bot.DifyClient.CallAPIBlock(replyMsgStr, conversationID, data.SenderId)
+	res, err := difybot.DifyClient.CallAPIBlock(replyMsgStr, conversationID, data.SenderId)
 	if err != nil {
 		fmt.Println(err)
 		return nil, err
