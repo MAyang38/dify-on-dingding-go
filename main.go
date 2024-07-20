@@ -35,7 +35,7 @@ func main() {
 	difybot.InitDifyClient()
 	dingbot.StartDingRobot()
 
-	// hertz http框架
+	//hertz http框架  未来支持提供接口调用
 	//h := server.Default()
 	//// 添加请求日志中间件
 	//h.Use(middlewares.RequestLogger())

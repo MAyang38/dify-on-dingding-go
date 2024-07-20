@@ -17,22 +17,19 @@ dify官网： https://dify.ai/
 2. 设置.env文件内的环境变量
 
 
-       API_KEY: dify的api_key
+       API_KEY: dify的api_key                要改
     
-       API_URL: dify 的api接口
+       API_URL: dify 的api接口                 要改
     
-       CLIENT_ID : 钉钉机器人应用的id
+       CLIENT_ID : 钉钉机器人应用的id           要改
     
-       CLIENT_SECRET:钉钉机器人应用的secret
-    
-       Private_Service_Control_Flag=0 # 默认关闭 自定义的外部服务 
-
-       Permission_Service=your_permission_service_address #默认用不上
-       
-       Ding_Topic=/v1.0/im/bot/messages/get 默认的钉钉topic
+       CLIENT_SECRET:钉钉机器人应用的secret     要改
+ 
+       Ding_Topic=/v1.0/im/bot/messages/get 默认的钉钉topic 不用改
      
        Output_Type: 机器人输出内容模式， Text为文本， Stream为流输出，Markdown为Markdown格式输出
 
+       Private_Service_Control_Flag=0 # 默认关闭 不用动 我公司私有的自定义的外部服务 
 
 # 部署
 
