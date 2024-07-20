@@ -54,6 +54,34 @@ func InitDifyClient() {
 		fmt.Println("Error connecting to Redis:", err)
 		os.Exit(1)
 	}
+
+	// 清空所有以 $:LWCP_v1 开头的键
+	var cursor uint64
+	var n int
+	for {
+		var keys []string
+		var err error
+		keys, cursor, err = DifyClient.RedisClient.Scan(ctx, cursor, "$:LWCP_v1*", 10).Result()
+		if err != nil {
+			fmt.Println("Error scanning keys:", err)
+			os.Exit(1)
+		}
+
+		if len(keys) > 0 {
+			n += len(keys)
+			if _, err := DifyClient.RedisClient.Del(ctx, keys...).Result(); err != nil {
+				fmt.Println("Error deleting keys:", err)
+				os.Exit(1)
+			}
+		}
+
+		if cursor == 0 {
+			break
+		}
+	}
+
+	fmt.Printf("Deleted %d keys\n", n)
+
 }
 
 type RequestBody struct {
@@ -266,7 +294,7 @@ func (client *difyClient) CallAPIStreaming(query, userID string, conversationID 
 
 }
 func (client *difyClient) ProcessEvent(userID string, event StreamingEvent, answerBuilder *strings.Builder, cm *utils.ChannelManager) error {
-	println(event.Event)
+	//println(event.Event)
 	switch event.Event {
 	case "message":
 		{
