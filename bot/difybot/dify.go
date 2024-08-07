@@ -3,8 +3,6 @@ package difybot
 import (
 	"bytes"
 	"context"
-	"ding/clients"
-	"ding/consts"
 	"ding/utils"
 	"encoding/json"
 	"errors"
@@ -257,15 +255,9 @@ func (client *difyClient) CallAPIStreaming(query, userID string, conversationID 
 
 	// 设置必要的请求头
 	req.Header.Set("Content-Type", "application/json")
-	if clients.PermissionControlInit == 1 {
-		difyApiKeyPermission, err := client.getHeader(permission)
-		if err != nil {
-			return nil, err
-		}
-		req.Header.Set("Authorization", "Bearer "+difyApiKeyPermission)
-	} else {
-		req.Header.Set("Authorization", "Bearer "+client.DifyApiKey)
-	}
+
+	req.Header.Set("Authorization", "Bearer "+client.DifyApiKey)
+
 	// 发送请求
 	resp, err := clientHttp.Do(req)
 	if err != nil {
@@ -350,20 +342,4 @@ func (client *difyClient) ProcessEvent(userID string, event StreamingEvent, answ
 	}
 	return nil
 
-}
-
-func (client *difyClient) getHeader(permission int) (apiKey string, err error) {
-
-	switch permission {
-	case consts.PermissionHigh:
-		return os.Getenv("API_KEY_1001"), nil
-	case consts.PermissionMiddle:
-		return os.Getenv("API_KEY_1002"), nil
-	case consts.PermissionLow:
-		return os.Getenv("API_KEY_1003"), nil
-	case consts.PermissionYou:
-		return os.Getenv("API_KEY_1004"), nil
-	}
-
-	return apiKey, nil
 }

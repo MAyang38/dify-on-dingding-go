@@ -62,19 +62,6 @@ func StartDingRobot() {
 }
 
 func OnChatReceiveText(ctx context.Context, data *chatbot.BotCallbackDataModel) ([]byte, error) {
-	if clients.PermissionControlInit == 1 {
-		permission, err := clients.PermissionControl.GetUserPermissionLevel(data.SenderId, data.SenderNick)
-		if err != nil {
-			fmt.Println("OnChatReceive 异常")
-			return nil, nil
-		}
-		fmt.Print(permission)
-		if permission == 0 {
-			fmt.Println("对不起，没有基础权限，请申请")
-		} else if permission == -1 {
-			fmt.Println("对不起，没有基础权限，请申请")
-		}
-	}
 	replyMsgStr := strings.TrimSpace(data.Text.Content)
 	replier := chatbot.NewChatbotReplier()
 
@@ -106,29 +93,6 @@ func OnChatBotStreamingMessageReceived(ctx context.Context, data *chatbot.BotCal
 	// 数据过滤
 	replier := chatbot.NewChatbotReplier()
 	permission := 0
-	var err error
-	if clients.PermissionControlInit == 1 {
-		permission, err = clients.PermissionControl.GetUserPermissionLevel(data.SenderId, data.SenderNick)
-		if err != nil {
-			fmt.Println("OnChatReceive 异常")
-			res := "服务器内部异常"
-			if err := replier.SimpleReplyText(ctx, data.SessionWebhook, []byte(res)); err != nil {
-				return nil, err
-			}
-			return nil, err
-		}
-		fmt.Print(permission)
-		if permission == 0 || permission == -1 {
-			fmt.Println("对不起，没有基础权限，请申请")
-			res := "对不起，没有基础权限，请申请"
-			if err := replier.SimpleReplyText(ctx, data.SessionWebhook, []byte(res)); err != nil {
-				return nil, err
-			}
-			return nil, nil
-		}
-
-	}
-
 	if !selfutils.StringInSlice(data.Msgtype, dingSupportType) {
 		res := "不支持的消息格式"
 		if err := replier.SimpleReplyText(ctx, data.SessionWebhook, []byte(res)); err != nil {
@@ -206,20 +170,7 @@ func OnChatBotStreamingMessageReceived(ctx context.Context, data *chatbot.BotCal
 }
 
 func OnChatReceiveMarkDown(ctx context.Context, data *chatbot.BotCallbackDataModel) ([]byte, error) {
-	if clients.PermissionControlInit == 1 {
-		permission, err := clients.PermissionControl.GetUserPermissionLevel(data.SenderId, data.SenderNick)
-		if err != nil {
-			fmt.Println("OnChatReceive 异常")
-			return nil, nil
-		}
-		fmt.Print(permission)
-		if permission == 0 {
-			fmt.Println("对不起，没有基础权限，请申请")
 
-		} else if permission == -1 {
-			fmt.Println("对不起，没有基础权限，请申请")
-		}
-	}
 	replyMsgStr := strings.TrimSpace(data.Text.Content)
 	replier := chatbot.NewChatbotReplier()
 

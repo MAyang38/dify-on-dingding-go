@@ -4,9 +4,7 @@ import (
 	"bufio"
 	"context"
 	"ding/bot/difybot"
-	"ding/clients"
 	"ding/consts"
-	"ding/models"
 	selfutils "ding/utils"
 	"encoding/json"
 	"fmt"
@@ -181,28 +179,6 @@ func (msg *DingMessage) processMessage() {
 		}
 		// 结束处理
 		msg.endProcessing()
-		// 记录发送日志
-		if clients.PermissionControlInit == 1 {
-			conversationID, _ := difybot.DifyClient.GetSession(userID)
-			msg.ConversationID = conversationID
-			question := models.Question{
-				Name:      msg.Data.SenderNick,
-				Query:     msg.ReceivedMsgStr,
-				Reply:     answerBuilder.String(),
-				UserId:    userID,
-				SessionId: msg.ConversationID,
-			}
-			if msg.IsGroup {
-				question.ChatType = 2
-			} else {
-				question.ChatType = 1
-			}
 
-			err = clients.QuestionLogCli.SendQueryRecord(question)
-			if err != nil {
-				fmt.Println("添加问题日志出错", err)
-				return
-			}
-		}
 	}
 }
