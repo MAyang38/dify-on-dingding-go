@@ -27,9 +27,8 @@ dify官网： https://dify.ai/
  
        Ding_Topic=/v1.0/im/bot/messages/get 默认的钉钉topic 不用改
      
-       Output_Type: 机器人输出内容模式， Text为文本， Stream为流输出，Markdown为Markdown格式输出
+       Output_Type:Stream 机器人输出内容模式， Text为文本， Stream为流输出，Markdown为Markdown格式输出
 
-       Private_Service_Control_Flag=0 # 默认关闭 不用动 我公司私有的自定义的外部服务 
 
 # 部署
 
